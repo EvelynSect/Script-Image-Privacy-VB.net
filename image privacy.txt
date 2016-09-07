@@ -1,0 +1,454 @@
+Imports System.IO
+Public Class Form1
+    Dim ofd As OpenFileDialog
+    Dim LstPathfilename As String
+    Dim bmp, bmp2, bmp3 As Bitmap
+    Dim g As Graphics = Me.CreateGraphics
+    Dim pic, pi2convert As New PictureBox
+    Dim DefaultImageWidth, DefaultImageHeight As Int32
+    Dim clicked As Boolean = False
+    Dim stoped As Boolean = False
+    Dim startedconvertingtotext As Boolean
+    Dim Sfd As SaveFileDialog
+    Dim ArgbColor, ArgbColor2 As Double
+    Dim lstcolors As New ListBox With {.Name = "Listbox1"}
+    Dim ColorPicture As New PictureBox
+    Dim retreivecolor As Color
+    Dim inti, icount As Int32
+    Dim min, sec, hour As Int32
+    Dim Isresize As Boolean = False
+
+    Private Sub Form1_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+
+        PictureBox1.AllowDrop = True
+
+    End Sub
+
+    Private Sub Button1_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
+
+        ofd = New OpenFileDialog
+        pic = New PictureBox
+        pi2convert = New PictureBox
+        With ofd
+            .Filter = "Supported Images|*.jpg;*.bmp;*.png;*.wmf;*.gif"
+            .InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures)
+            .Title = "Browse Images"
+            .RestoreDirectory = True
+            If .ShowDialog() = Windows.Forms.DialogResult.OK Then
+                pic.Image = Image.FromFile(.FileName)
+                pi2convert.Image = Image.FromFile(.FileName)
+                DefaultImageWidth = pic.Image.Width
+                DefaultImageHeight = pic.Image.Height
+                bmp3 = New Bitmap(pi2convert.Image, 220, 220)
+                bmp2 = New Bitmap(pi2convert.Image, 220, 220)
+                PictureBox1.Image = bmp2
+                bmp = New Bitmap(PictureBox1.Image)
+                Label1.Text = "Width:" & bmp2.Width.ToString
+                Label2.Text = "Height:" & PictureBox1.Image.Height.ToString
+            End If
+        End With
+    End Sub
+
+    Private Sub Button2_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button2.Click
+
+        Threading.Thread.AllocateDataSlot()
+        If Not PictureBox1.Image Is Nothing Then
+            Sfd = New SaveFileDialog
+            Sfd.Filter = "Supported Files|*.syn"
+            If Sfd.ShowDialog() = Windows.Forms.DialogResult.OK Then
+                If File.Exists(Sfd.FileName) = True Then
+                    File.Delete(Sfd.FileName)
+                Else
+                    isbusy = True
+                    ProgressBar1.Minimum = 0
+                    ProgressBar1.Maximum = 220 * 220
+                    Button3.Enabled = False
+                    Button4.Enabled = True
+                    PictureBox1.SizeMode = PictureBoxSizeMode.CenterImage
+                    PictureBox1.AllowDrop = False
+                    Button1.Enabled = False
+                    Button2.Enabled = False
+                    Try
+                        File.AppendAllText(Sfd.FileName, DefaultImageWidth & vbNewLine & DefaultImageHeight & vbNewLine)
+                    Catch ex As IOException
+                        MessageBox.Show(ex.Message.ToString, "Error")
+                        Me.Text = ex.Message.ToString.Remove(ex.Message.IndexOf("."), ex.Message.Length - ex.Message.IndexOf("."))
+                        Button3.Enabled = True
+                        ProgressBar1.Value = 0
+                        File.Delete(Sfd.FileName)
+                        Label4.Text = String.Empty
+                        Timer1.Enabled = False
+                        Button1.Enabled = True
+                        PictureBox1.AllowDrop = True
+                        PictureBox1.SizeMode = PictureBoxSizeMode.CenterImage
+                        Button4.Enabled = False
+                        Button2.Enabled = True
+                        Exit Sub
+                    End Try
+                    Timer1.Enabled = True
+                    Dim getcolor As Color
+                    For x As Int32 = 0 To 219
+                        Application.DoEvents()
+                        For y As Int32 = 0 To 219
+                            If clicked = True Then
+                                File.Delete(Sfd.FileName)
+                                End
+                            End If
+                            If stoped = True Then
+                                If MessageBox.Show("You want to quit?", "Info", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+                                    Button3.Enabled = True
+                                    Button4.Enabled = False
+                                    Button1.Enabled = True
+                                    Button2.Enabled = True
+                                    Timer1.Enabled = False
+                                    File.Delete(Sfd.FileName)
+                                    stoped = False
+                                    getcolor = Nothing
+                                    ProgressBar1.Value = 0
+                                    bmp3.Dispose()
+                                    x = 0
+                                    y = 0
+                                    PictureBox1.SizeMode = PictureBoxSizeMode.CenterImage
+                                    PictureBox1.AllowDrop = True
+                                    Threading.Thread.EndThreadAffinity()
+                                    Label4.Text = String.Empty
+                                    Exit Sub
+                                Else
+                                    stoped = False
+                                End If
+                            End If
+                            If ProgressBar1.Value <= ProgressBar1.Maximum Then
+                                ProgressBar1.Value += 1
+                                Label4.Text = FormatPercent(ProgressBar1.Value / ProgressBar1.Maximum, 0)
+                                getcolor = bmp3.GetPixel(x, y)
+                                ColorPicture.BackColor = getcolor
+
+                                ArgbColor = (((ColorPicture.BackColor.ToArgb / 220) + 1) / 2)
+                                File.AppendAllText(Sfd.FileName, ArgbColor.ToString & vbNewLine)
+                            End If
+
+                        Next
+                    Next
+                    Timer1.Enabled = False
+                    sec = 0
+                    min = 0
+                    icount = 0
+                    PictureBox1.SizeMode = PictureBoxSizeMode.CenterImage
+                    hour = 0
+                    Label4.Text = String.Empty
+                    isbusy = False
+                    MessageBox.Show("Done Converting." & vbNewLine & "Time taken: " & Label3.Text, "Info")
+                    Button3.Enabled = True
+                    getcolor = Color.Empty
+                    Button1.Enabled = True
+                    Button4.Enabled = False
+                    Button2.Enabled = True
+                End If
+            End If
+        Else
+            Button1_Click(sender, e)
+        End If
+        PictureBox1.AllowDrop = True
+        icount = 0
+        ProgressBar1.Value = 0
+        Threading.Thread.EndThreadAffinity()
+        lstcolors.Items.Clear()
+
+    End Sub
+    Private Sub Button3_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button3.Click
+
+        Threading.Thread.AllocateDataSlot()
+        Threading.Thread.BeginThreadAffinity()
+        ofd = New OpenFileDialog
+        ofd.Filter = "Supported File|*.syn"
+        If ofd.ShowDialog() = Windows.Forms.DialogResult.OK Then
+            If MessageBox.Show("Start Converting?", "Info", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+                isbusy = True
+                Button3.Enabled = False
+                lstcolors.Items.Clear()
+                icount = 0
+                Button1.Enabled = False
+                Button4.Enabled = True
+                Button2.Enabled = False
+                PictureBox1.AllowDrop = False
+                Application.DoEvents()
+                PictureBox1.Image = Nothing
+                pic = Nothing
+                Timer1.Enabled = True
+                For Each line In File.ReadAllLines(ofd.FileName)
+                    icount += 1
+                    If icount < 3 Then
+                        DefaultImageWidth = CInt(line)
+                        DefaultImageHeight = CInt(line)
+                        Label1.Text = "Width: " & DefaultImageWidth
+                        Label2.Text = "Height: " & DefaultImageHeight
+                    Else
+                        lstcolors.Items.Add(line)
+                    End If
+                    ProgressBar1.Minimum = 0
+                    ProgressBar1.Maximum = lstcolors.Items.Count
+                Next
+                bmp3 = New Bitmap(220, 220)
+                For x As Int32 = 0 To 219
+                    Application.DoEvents()
+                    For y As Int32 = 0 To 219
+                        If clicked = True Then
+                            If MessageBox.Show("You want to close the program?", "Info", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+                                End
+                            End If
+                        End If
+                        If stoped = True Then
+                            If MessageBox.Show("You want to quit?", "Info", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+                                Button3.Enabled = True
+                                Button4.Enabled = False
+                                Button1.Enabled = True
+                                Button2.Enabled = True
+                                stoped = False
+                                Timer1.Enabled = False
+                                x = 0
+                                y = 0
+                                min = 0
+                                sec = 0
+                                hour = 0
+                                icount = 0
+                                isbusy = False
+                                Label4.Text = String.Empty
+                                ProgressBar1.Value = 0
+                                lstcolors.Items.Clear()
+                                PictureBox1.Image = Nothing
+                                PictureBox1.AllowDrop = True
+                                Threading.Thread.EndThreadAffinity()
+                                Exit Sub
+                            Else
+                                stoped = False
+                            End If
+                        End If
+                        If ProgressBar1.Value <= ProgressBar1.Maximum Then
+                            ProgressBar1.Value += 1
+                            Label4.Text = FormatPercent(ProgressBar1.Value / ProgressBar1.Maximum, 0)
+                            lstcolors.SelectedIndex = ProgressBar1.Value - 1
+                            ArgbColor2 = (((CDbl(lstcolors.SelectedItem) * 2) - 1) * 220)
+                            retreivecolor = Color.FromArgb(CInt(ArgbColor2))
+                            bmp3.SetPixel(x, y, retreivecolor)
+                            PictureBox1.Image = bmp3
+                        End If
+                    Next
+                Next
+                Timer1.Enabled = False
+                sec = 0
+                min = 0
+                ArgbColor = Nothing
+                bmp = Nothing
+                retreivecolor = Nothing
+                hour = 0
+                Label4.Text = String.Empty
+                icount = 0
+                If MessageBox.Show("Done Converting." & vbNewLine & "Time taken: " & Label3.Text & vbNewLine & "Save Image?", "Info", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+                    Sfd = New SaveFileDialog()
+                    Sfd.Filter = "Image|*.Jpeg"
+                    If Sfd.ShowDialog() = Windows.Forms.DialogResult.OK Then
+                        bmp2 = New Bitmap(PictureBox1.Image, DefaultImageWidth, DefaultImageHeight)
+                        pic = New PictureBox
+                        pic.Image = bmp2
+                        pic.Image.Save(Sfd.FileName, Imaging.ImageFormat.Jpeg)
+                    End If
+                Else
+                End If
+                isbusy = False
+                PictureBox1.Image = bmp3
+                Button3.Enabled = True
+                Button4.Enabled = False
+                ProgressBar1.Value = 0
+                Button1.Enabled = True
+                PictureBox1.AllowDrop = True
+                Button2.Enabled = True
+                PictureBox1.SizeMode = PictureBoxSizeMode.CenterImage
+            End If
+        End If
+        Threading.Thread.EndThreadAffinity()
+        lstcolors.Items.Clear()
+        icount = 0
+
+    End Sub
+
+    Private Sub ButtonStop_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button4.Click
+
+        stoped = True
+
+    End Sub
+
+    Private Sub Button5_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button5.Click
+
+        If MessageBox.Show("You want to exit?", "Info", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+            clicked = True
+            End
+        End If
+
+    End Sub
+#Region "Drag and drop"
+    Private Sub PictureBox1_DragEnter(ByVal sender As System.Object, ByVal e As System.Windows.Forms.DragEventArgs) Handles PictureBox1.DragEnter
+        e.Effect = DragDropEffects.Link
+    End Sub
+    Dim isbusy As Boolean = False
+    Private Sub PictureBox1_DragDrop(ByVal sender As System.Object, ByVal e As System.Windows.Forms.DragEventArgs) Handles PictureBox1.DragDrop
+        Threading.Thread.AllocateDataSlot()
+
+        If isbusy = False Then
+            For Each dragedfile In ArrayList.Adapter(DirectCast(e.Data.GetData(DataFormats.FileDrop), IList))
+                isbusy = False
+                Dim fileinform As New FileInfo(CStr(dragedfile))
+                If fileinform.Extension = ".bmp" Or fileinform.Extension = ".jpg" Or fileinform.Extension = ".png" Or fileinform.Extension = ".gif" Or fileinform.Extension = ".wmf" Or fileinform.Extension = ".jpeg" Then
+                    isbusy = True
+                    LstPathfilename = Path.GetFileNameWithoutExtension(fileinform.FullName)
+                    pic.Image = Image.FromFile(fileinform.FullName)
+                    DefaultImageWidth = pic.Image.Width
+                    DefaultImageHeight = pic.Image.Height
+                    bmp2 = New Bitmap(pic.Image, 220, 220)
+                    bmp3 = New Bitmap(pic.Image, 220, 220)
+                    PictureBox1.Image = bmp2
+                    bmp = New Bitmap(PictureBox1.Image)
+                    Label1.Text = "Width:" & bmp2.Width.ToString
+                    Label2.Text = "Height:" & PictureBox1.Image.Height.ToString
+                    isbusy = False
+                    dragedfile = String.Empty
+                    Threading.Thread.EndThreadAffinity()
+                ElseIf fileinform.Extension = ".end" Then
+                    If MessageBox.Show("Start Converting?", "Info", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+
+                        isbusy = True
+                        Button3.Enabled = False
+                        Button1.Enabled = False
+                        Button4.Enabled = True
+                        Button2.Enabled = False
+                        PictureBox1.Image = Nothing
+                        pic = Nothing
+                        PictureBox1.AllowDrop = False
+                        Timer1.Enabled = True
+                        bmp = New Bitmap(220, 220)
+                        For Each line In File.ReadAllLines(fileinform.FullName)
+                            icount += 1
+                            If icount < 3 Then
+                                DefaultImageWidth = CInt(line)
+                                DefaultImageHeight = CInt(line)
+                                Label1.Text = "Width: " & DefaultImageWidth
+                                Label2.Text = "Height: " & DefaultImageHeight
+                            Else
+                                lstcolors.Items.Add(line)
+                            End If
+                            ProgressBar1.Minimum = 0
+                            ProgressBar1.Maximum = lstcolors.Items.Count
+                        Next
+                        For x As Int32 = 0 To 219
+                            Application.DoEvents()
+                            For y As Int32 = 0 To 219
+
+                                If clicked = True Then
+                                    If MessageBox.Show("You want to close the program?", "Info", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+                                        End
+                                    End If
+                                End If
+                                If stoped = True Then
+                                    If MessageBox.Show("You want to quit?", "Info", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+                                        Button3.Enabled = True
+                                        Button4.Enabled = False
+                                        Button1.Enabled = True
+                                        Button2.Enabled = True
+                                        stoped = False
+                                        Timer1.Enabled = False
+                                        x = 0
+                                        y = 0
+                                        sec = 0
+                                        min = 0
+                                        hour = 0
+                                        icount = 0
+                                        Label4.Text = String.Empty
+                                        PictureBox1.AllowDrop = True
+                                        ProgressBar1.Value = 0
+                                        lstcolors.Items.Clear()
+                                        isbusy = False
+                                        PictureBox1.Image = Nothing
+                                        Threading.Thread.EndThreadAffinity()
+                                        Exit Sub
+                                    Else
+                                        stoped = False
+                                    End If
+                                End If
+                                If ProgressBar1.Value <= ProgressBar1.Maximum Then
+                                    ProgressBar1.Value += 1
+                                    inti += 1
+                                    lstcolors.SelectedIndex = inti - 1
+                                    Label4.Text = FormatPercent(ProgressBar1.Value / ProgressBar1.Maximum, 0)
+                                    ArgbColor2 = (((CDbl(lstcolors.SelectedItem) * 2) - 1) * 220)
+                                    retreivecolor = Color.FromArgb(CInt(ArgbColor2))
+                                    bmp.SetPixel(x, y, retreivecolor)
+                                    PictureBox1.Image = bmp
+                                Else
+                                    ProgressBar1.Value = 0
+                                End If
+                            Next
+                        Next
+                        Timer1.Enabled = False
+                        sec = 0
+                        min = 0
+                        hour = 0
+                        inti = 0
+                        Label4.Text = String.Empty
+                        If MessageBox.Show("Done Converting." & vbNewLine & "Time taken: " & Label3.Text & vbNewLine & "Save Image?", "Info", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+                            Sfd = New SaveFileDialog()
+                            Sfd.Filter = "Image|*.Jpeg"
+                            If Sfd.ShowDialog() = Windows.Forms.DialogResult.OK Then
+                                bmp2 = New Bitmap(PictureBox1.Image, DefaultImageWidth, DefaultImageHeight)
+                                pic = New PictureBox
+                                pic.Image = bmp2
+                                pic.Image.Save(Sfd.FileName, Imaging.ImageFormat.Jpeg)
+                            End If
+                        End If
+                        isbusy = False
+                        Button3.Enabled = True
+                        Button4.Enabled = False
+                        Button1.Enabled = True
+                        Button2.Enabled = True
+                        dragedfile = String.Empty
+                    End If
+                End If
+            Next
+        Else
+            MessageBox.Show("Busy converting. Press stop and drag again")
+        End If
+        PictureBox1.AllowDrop = True
+        ProgressBar1.Value = 0
+        icount = 0
+        lstcolors.Items.Clear()
+        Threading.Thread.EndThreadAffinity()
+    End Sub
+#End Region
+
+    Private Sub Form1_FormClosing(ByVal sender As System.Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles MyBase.FormClosing
+        If MessageBox.Show("You want to exit?", "Info", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+            clicked = True
+        Else
+            e.Cancel = True
+        End If
+
+    End Sub
+
+    Private Sub Timer1_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Timer1.Tick
+        Threading.Thread.AllocateDataSlot()
+
+        sec += 1
+        If sec = 59 Then
+            min += 1
+            sec = 0
+            If min = 59 Then
+                hour += 1
+                min = 0
+                If hour = 24 Then
+                    hour = 0
+                End If
+            End If
+        End If
+        Label3.Text = hour & " hour(s) " & min & " min(s) " & sec & " sec(s)"
+
+    End Sub
+
+End Class
